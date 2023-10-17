@@ -97,6 +97,7 @@ export const createDealFromGetcourse = async (req: Request, res: Response) => {
         res.status(502).send('ошибка при получении сделки');
     }
 };
+
 export const createDeal = async (req: Request, res: Response) => {
     try {
         const { title, price, clientId, stageId } = req.body;

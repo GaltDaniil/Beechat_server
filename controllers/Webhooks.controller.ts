@@ -1,10 +1,12 @@
 import client from '../db.js';
 import { Request, Response } from 'express';
+import { maxDealPos } from '../utils/checkMaxDealPosition.js';
 
 export const getcourseHook = async (req: Request, res: Response) => {
     console.log('Отработал GC hook с данными', req.query);
     try {
         const {
+            subdomain,
             client_name,
             client_surname,
             client_phone,
@@ -20,7 +22,15 @@ export const getcourseHook = async (req: Request, res: Response) => {
             deal_num,
             deal_status,
             deal_pay_url,
+            pipeline_id,
         } = req.query;
+
+        const getAccountId = await client.query(
+            `SELECT id 
+        FROM clients
+        WHERE company_name=$1`,
+            [subdomain],
+        );
 
         const custom_fields = {
             client_url,
@@ -32,11 +42,12 @@ export const getcourseHook = async (req: Request, res: Response) => {
         WHERE email=$1 OR phone=$2`,
             [client_email, client_phone],
         );
+        console.log(isAlreadyClient.rows[0]);
 
         if (!isAlreadyClient.rows[0]) {
             const insertClientQuery = `
-            INSERT INTO clients (name, surname, phone, email, utm_campaign, utm_source, utm_medium, custom_fields)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO clients (name, surname, phone, email, account_id, utm_campaign, utm_source, utm_medium, custom_fields)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING id
           `;
 
@@ -45,6 +56,7 @@ export const getcourseHook = async (req: Request, res: Response) => {
                 client_surname,
                 client_phone,
                 client_email,
+                getAccountId.rows[0].id || 1,
                 utm_campaign,
                 utm_source,
                 utm_medium,
@@ -57,7 +69,14 @@ export const getcourseHook = async (req: Request, res: Response) => {
             client_id = isAlreadyClient.rows[0].id;
         }
 
-        // Вставьте данные о клиенте в таблицу clients и получите client_id
+        let position;
+        const maxPos = await maxDealPos(1, 1);
+
+        if (maxPos) {
+            position = maxPos + 65536;
+        } else {
+            position = 65536;
+        }
 
         const deal_custom_fields = {
             deal_url,
@@ -66,16 +85,18 @@ export const getcourseHook = async (req: Request, res: Response) => {
         };
 
         const insertDealQuery = `
-            INSERT INTO deals (client_id, stage_id, deal_status, deal_title, deal_price, deal_custom_fields)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            INSERT INTO deals (client_id, stage_id, pipeline_id, deal_status, deal_title, deal_price, deal_position, deal_custom_fields)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           `;
 
         await client.query(insertDealQuery, [
             client_id,
             Number(stage_id),
             Number(deal_status),
+            pipeline_id,
             deal_title,
             Number(deal_price),
+            position,
             deal_custom_fields,
         ]);
         console.log('сделка создана');
