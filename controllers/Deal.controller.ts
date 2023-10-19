@@ -42,16 +42,16 @@ export const getManyDeals = async (req: Request, res: Response) => {
 };
 export const updateOneDeal = async (req: Request, res: Response) => {
     try {
-        const { id, stage_id, deal_order } = req.body;
+        const { id, stage_id, deal_position } = req.body;
         let result;
-        if (stage_id && deal_order) {
+        if (stage_id && deal_position) {
             // Если предоставлены и stage_id, и order
             result = await client.query(
                 `
                 UPDATE deals
-                SET stage_id = $2, deal_order = $3
+                SET stage_id = $2, deal_position = $3
                 WHERE id = $1`,
-                [id, stage_id, deal_order],
+                [id, stage_id, deal_position],
             );
         } else if (stage_id) {
             // Если предоставлен только stage_id
@@ -62,16 +62,16 @@ export const updateOneDeal = async (req: Request, res: Response) => {
                 WHERE id = $1`,
                 [id, stage_id],
             );
-        } else if (deal_order) {
+        } else if (deal_position) {
             // Если предоставлен только order
             console.log('Прошел запрос на смену ордера');
-            console.log(deal_order);
+            console.log(deal_position);
             result = await client.query(
                 `
                 UPDATE deals
-                SET deal_order = $2
+                SET deal_position = $2
                 WHERE id = $1`,
-                [id, deal_order],
+                [id, deal_position],
             );
         } else {
             res.status(400).send('Не предоставлены данные для обновления.');

@@ -3,10 +3,9 @@ import { Request, Response } from 'express';
 import { maxDealPos } from '../utils/checkMaxDealPosition.js';
 
 export const getcourseHook = async (req: Request, res: Response) => {
-    console.log('Отработал GC hook с данными', req.query);
     try {
         const {
-            subdomain,
+            company_name,
             client_name,
             client_surname,
             client_phone,
@@ -27,9 +26,9 @@ export const getcourseHook = async (req: Request, res: Response) => {
 
         const getAccountId = await client.query(
             `SELECT id 
-        FROM clients
+        FROM accounts
         WHERE company_name=$1`,
-            [subdomain],
+            [company_name],
         );
 
         const custom_fields = {
@@ -42,7 +41,6 @@ export const getcourseHook = async (req: Request, res: Response) => {
         WHERE email=$1 OR phone=$2`,
             [client_email, client_phone],
         );
-        console.log(isAlreadyClient.rows[0]);
 
         if (!isAlreadyClient.rows[0]) {
             const insertClientQuery = `
@@ -71,12 +69,16 @@ export const getcourseHook = async (req: Request, res: Response) => {
 
         let position;
         const maxPos = await maxDealPos(1, 1);
+        console.log('максимальное число', maxPos);
 
         if (maxPos) {
-            position = maxPos + 65536;
+            const integerPart = Math.floor(maxPos);
+            const decimalPart = maxPos - integerPart;
+            position = integerPart + 65536 + decimalPart;
         } else {
-            position = 65536;
+            position = 65535;
         }
+        console.log('новая позиция', position);
 
         const deal_custom_fields = {
             deal_url,

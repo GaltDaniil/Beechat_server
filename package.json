@@ -33,6 +33,7 @@
         "node-fetch": "^3.3.2",
         "node-telegram-bot-api": "^0.61.0",
         "pg": "^8.11.3",
-        "socket.io": "^4.7.2"
+        "socket.io": "^4.7.2",
+        "vk-io": "^4.8.3"
     }
 }
