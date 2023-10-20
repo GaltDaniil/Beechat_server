@@ -17,13 +17,13 @@ interface IBody {
 
 export const createClientFromChat = async (req: Request, res: Response) => {
     try {
-        const { account_id, chat_id, from_messenger, name, phone, description } = req.body;
+        const { account_id, chat_id, chat_type, name, phone, description } = req.body;
 
         const custom_fields = { chat_description: description };
         //@ts-ignore
         const client_id = await client.query(
-            'INSERT INTO clients (account_id, from_messenger, name, phone, custom_fields) values ($1, $2, $3, $4, $5) RETURNING id',
-            [account_id, from_messenger, name, phone, custom_fields],
+            'INSERT INTO clients (account_id, chat_type, name, phone, custom_fields) values ($1, $2, $3, $4, $5) RETURNING id',
+            [account_id, chat_type, name, phone, custom_fields],
         );
         await client.query('UPDATE chats SET client_id = $1 WHERE id = $2', [
             client_id.rows[0].id,

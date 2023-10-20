@@ -20,12 +20,13 @@ interface IioData {
 
 export const getChat = async (req: Request, res: Response) => {
     try {
-        const chat_id = req.params.id;
+        const messenger_id = req.params.id;
+        const chat_type = 'beeChat';
         //@ts-ignore
         const result = await client.query(
             `SELECT * FROM chats 
-            WHERE id = $1`,
-            [chat_id],
+            WHERE messenger_id = $1 AND chat_type = $2`,
+            [messenger_id, chat_type],
         );
         console.log('данные чата переданы');
         res.status(200).json(result.rows[0]);
@@ -52,7 +53,6 @@ export const getAllChatsWithUnread = async (req: Request, res: Response) => {
         clients.name AS client_name, 
         clients.phone AS client_phone, 
         clients.email AS client_email,
-        clients.avatar AS avatar,
         clients.custom_fields AS client_custom_fields
     FROM
         chats
@@ -81,7 +81,7 @@ export const getAllChatsWithUnread = async (req: Request, res: Response) => {
         console.error(err);
     }
 };
-export const getAllChats = async (req: Request, res: Response) => {
+/* export const getAllChats = async (req: Request, res: Response) => {
     try {
         const query3 = `
     SELECT
@@ -120,20 +120,20 @@ export const getAllChats = async (req: Request, res: Response) => {
         console.error(err);
         res.status(502).send('ошибка получения чатов');
     }
-};
+}; */
 
 export const createChat = async (req: Request, res: Response) => {
     try {
-        const { account_id, from_messenger } = req.body;
+        const { account_id, messenger_id, chat_type } = req.body;
         console.log(account_id);
         const created_at = new Date();
         const avatarUrl = `imgs/defaultAvatars/${Math.floor(Math.random() * 17) + 1}.png`;
 
         const query = `INSERT INTO chats 
-        (account_id, from_messenger, avatar) 
-        values ($1, $2, $3) 
+        (account_id, chat_type, messenger_id, chat_avatar) 
+        values ($1, $2, $3, $4) 
         RETURNING *;`;
-        const params = [account_id, from_messenger, avatarUrl];
+        const params = [account_id, chat_type, messenger_id, avatarUrl];
 
         const result = await client.query(query, params);
         telegramBot.sendMessage(680306494, `Новое сообщение с сайта`);
@@ -144,6 +144,25 @@ export const createChat = async (req: Request, res: Response) => {
         console.error(err);
         res.status(502).send('ошибка при создании чата');
     }
+};
+
+interface IChatData {
+    account_id: number;
+    chat_type: string;
+    avatarUrl: string;
+    messenger_id: number;
+}
+
+export const createChat4All = async (params: IChatData) => {
+    const { account_id, chat_type, avatarUrl, messenger_id } = params;
+    const result = await client.query(
+        `INSERT INTO chats 
+    (account_id, chat_type, chat_avatar, messenger_id) 
+    values ($1, $2, $3) 
+    RETURNING *;`,
+        [account_id, chat_type, avatarUrl, messenger_id],
+    );
+    return result;
 };
 
 export const deleteChat = async (req: Request, res: Response) => {

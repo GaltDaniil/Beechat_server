@@ -13,7 +13,7 @@ interface StartCommandType {
 export const startCommandWithParams: StartCommandType = async (msg, match) => {
     console.log('отработал start с параметрами в боте');
     try {
-        const telegram_id = msg.chat.id.toString();
+        const telegram_id = msg.chat.id;
         const tg_name = msg.chat.first_name;
         const tg_user_name = msg.chat.username;
 
@@ -32,7 +32,7 @@ export const startCommandWithParams: StartCommandType = async (msg, match) => {
             const isHaveChat = await client.query(
                 `
                 SELECT * FROM chats
-                WHERE clietn_id = $1
+                WHERE client_id = $1
             `,
                 [isClient.id],
             );
@@ -43,7 +43,7 @@ export const startCommandWithParams: StartCommandType = async (msg, match) => {
                 const avatarUrl = await saveUserAvatar(msg.chat.id);
                 const client_id = isClient.id;
                 const query = `INSERT INTO chats 
-            (telegram_id, from_messenger, account_id, client_id, avatar) 
+            (messenger_id, chat_type, account_id, client_id, chat_avatar) 
             VALUES ($1, $2, $3, $4, $5);`;
                 const params = [telegram_id, 'telegram', account_id, client_id, avatarUrl];
                 await client.query(query, params);
@@ -54,9 +54,8 @@ export const startCommandWithParams: StartCommandType = async (msg, match) => {
             VALUES ($1, $2, $3) 
             RETURNING id;`;
             const custom_fields = {
-                telegram_id: telegram_id.toString(),
-                tg_name: tg_name!.toString(),
-                tg_user_name: tg_user_name!.toString(),
+                tg_name: tg_name,
+                tg_user_name: tg_user_name,
             };
             const params = [account_id, telegram_id, custom_fields];
 
@@ -67,7 +66,7 @@ export const startCommandWithParams: StartCommandType = async (msg, match) => {
                 const avatarUrl = await saveUserAvatar(msg.chat.id);
                 const client_id = user.rows[0].id;
                 const query = `INSERT INTO chats 
-            (telegram_id, from_messenger, account_id, client_id, avatar) 
+            (messenger_id, chat_type, account_id, client_id, chat_avatar) 
             VALUES ($1, $2, $3, $4, $5);`;
                 const params = [telegram_id, 'telegram', account_id, client_id, avatarUrl];
 
@@ -88,16 +87,16 @@ export const startCommandWithParams: StartCommandType = async (msg, match) => {
 
 export const startCommand: StartCommandType = async (msg, match) => {
     try {
-        console.log('отработал start в боте');
+        console.log('отработал обычный start в боте');
         console.log(match);
 
-        const telegram_id = msg.chat.id.toString();
+        const telegram_id = msg.chat.id;
 
         const query = `SELECT id
             FROM clients
-            WHERE custom_fields @> '{"telegram_id": ${telegram_id}}';`;
+            WHERE telegram_id=$1;`;
 
-        const user = await client.query(query);
+        const user = await client.query(query, [telegram_id]);
 
         if (!user.rows[0]) {
             const name = msg.chat.first_name;
@@ -105,14 +104,13 @@ export const startCommand: StartCommandType = async (msg, match) => {
             const tg_user_name = msg.chat.username;
 
             const query = `INSERT INTO clients 
-            (name, telegram_id, created_at, custom_fields) 
-            VALUES ($1, $2, $3, $4) 
+            (name, telegram_id, custom_fields) 
+            VALUES ($1, $2, $3) 
             RETURNING id;`;
             const custom_fields = {
-                telegram_id: telegram_id.toString(),
-                tg_user_name: tg_user_name!.toString(),
+                tg_user_name: tg_user_name,
             };
-            const params = [name, telegram_id, created_at, custom_fields];
+            const params = [name, telegram_id, custom_fields];
 
             const data = await client.query(query, params);
             console.log('клиент создан');
@@ -121,7 +119,7 @@ export const startCommand: StartCommandType = async (msg, match) => {
                 const avatarUrl = await saveUserAvatar(msg.chat.id);
                 const client_id = data.rows[0].id;
                 const query = `INSERT INTO chats 
-            (telegram_id, from_messenger, account_id, client_id, avatar) 
+            (messenger_id, chat_type, account_id, client_id, chat_avatar) 
             VALUES ($1, $2, $3, $4, $5);`;
                 const params = [telegram_id, 'telegram', 1, client_id, avatarUrl];
 
@@ -144,11 +142,11 @@ export const createChatFromTg = async (
     msg: TelegramBot.Message,
     client_id: number,
 ): Promise<IChat> => {
-    const telegram_id = msg.chat.id.toString();
+    const telegram_id = msg.chat.id;
     const avatarUrl = await saveUserAvatar(msg.chat.id);
 
     const query = `INSERT INTO chats 
-            (telegram_id, from_messenger, account_id, client_id, avatar) 
+            (messenger_id, chat_type, account_id, client_id, chat_avatar) 
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *`;
     const params = [telegram_id, 'telegram', 1, client_id, avatarUrl];
@@ -160,7 +158,7 @@ export const createChatFromTg = async (
 };
 
 export const checkClientForAvailability = async (msg: TelegramBot.Message): Promise<IClient> => {
-    const telegram_id = msg.chat.id.toString();
+    const telegram_id = msg.chat.id;
 
     const user = await client.query(
         `
@@ -172,12 +170,12 @@ export const checkClientForAvailability = async (msg: TelegramBot.Message): Prom
 };
 
 export const checkChatForAvailability = async (msg: TelegramBot.Message): Promise<IChat> => {
-    const telegram_id = msg.chat.id.toString();
+    const telegram_id = msg.chat.id;
 
     const chat = await client.query(
         `
     SELECT * FROM chats
-    WHERE telegram_id = $1`,
+    WHERE messenger_id = $1`,
         [telegram_id],
     );
     return chat.rows[0];

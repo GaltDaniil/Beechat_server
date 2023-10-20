@@ -10,8 +10,8 @@ interface IRequest extends Request {
         text: string;
         from_client: string;
         message_id?: number;
-        from_messenger: string;
-        telegram_id: string;
+        chat_type: string;
+        messenger_id: number;
     };
 }
 
@@ -70,7 +70,7 @@ export const getMessageById = async (req: IRequest, res: Response) => {
 
 export const sendMessage = async (req: IRequest, res: Response) => {
     try {
-        const { text, chat_id, from_client, telegram_id } = req.body;
+        const { text, chat_id, from_client, chat_type, messenger_id } = req.body;
         console.log(chat_id);
 
         const queryText = `INSERT INTO 
@@ -78,12 +78,10 @@ export const sendMessage = async (req: IRequest, res: Response) => {
         VALUES ($1, $2, $3) 
         RETURNING *`;
         const values = [text, chat_id, from_client];
-
         const newMessage = await client.query(queryText, values);
-        console.log('telegram_id ', telegram_id);
-        if (telegram_id) {
+        if (chat_type === 'telegram') {
             //@ts-ignore
-            telegramBot.sendMessage(telegram_id, text, { is_bot_message: true });
+            telegramBot.sendMessage(messenger_id.toString(), text, { is_bot_message: true });
         }
         res.status(200).json(newMessage.rows[0]);
     } catch (err) {

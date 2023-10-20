@@ -22,6 +22,7 @@
         "typescript": "^5.2.2"
     },
     "dependencies": {
+        "@vk-io/hear": "^1.1.1",
         "axios": "^1.5.0",
         "cors": "^2.8.5",
         "csv-parser": "^3.0.0",

@@ -2,7 +2,6 @@ import { Router } from 'express';
 import {
     createChat,
     deleteChat,
-    getAllChats,
     getAllChatsWithUnread,
     getChat,
 } from '../controllers/Chat.controller.js';
@@ -10,7 +9,7 @@ import {
 const router = Router();
 
 router.post('/', createChat);
-router.get('/', getAllChats);
+router.get('/', () => {});
 router.get('/all', getAllChatsWithUnread);
 router.get('/:id', getChat);
 router.put('/:id', () => {});

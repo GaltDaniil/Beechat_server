@@ -74,9 +74,6 @@ io.on('connection', (socket: Socket) => {
     });
 
     socket.on('sendMessage', (data) => {
-        console.log('новое сообщение', data);
-
-        //emitter.emit('update');
         io.emit('update');
         socket.to(data.chat_id).emit('newMessage', data);
     });
@@ -93,12 +90,11 @@ io.on('connection', (socket: Socket) => {
     });
 });
 
-//telegramBot.onText(/\/start(.+)/, startCommandWithParams);
+telegramBot.onText(/\/start(.+)/, startCommandWithParams);
 telegramBot.onText(/\/start$/, startCommand);
 
 telegramBot.on('message', async (msg) => {
-    const telegram_id = msg.chat.id.toString();
-    const sended_at = new Date();
+    const telegram_id = msg.chat.id;
     const from_client = true;
     let chat_id;
 
@@ -111,20 +107,31 @@ telegramBot.on('message', async (msg) => {
         WHERE telegram_id = $1`,
             [telegram_id],
         );
-
-        const client_id = user.rows[0].id;
-
-        const newChat = await createChatFromTg(msg, client_id);
-        chat_id = newChat.id;
+        if (user.rows[0]) {
+            const client_id = user.rows[0].id;
+            const newChat = await createChatFromTg(msg, client_id);
+            chat_id = newChat.id;
+        } else {
+            const query = `INSERT INTO clients 
+            (name, telegram_id, custom_fields) 
+            VALUES ($1, $2, $3) 
+            RETURNING id;`;
+            const custom_fields = {
+                tg_user_name: msg.chat.username,
+            };
+            const params = [msg.chat.first_name, telegram_id, custom_fields];
+            const data = await client.query(query, params);
+            chat_id = data.rows[0].id;
+        }
     } else {
         chat_id = isHaveChat.id;
     }
     const newMessage = await client.query(
         `
         INSERT INTO messages 
-        (chat_id, text, sended_at, from_client) values ($1, $2, $3, $4) 
+        (chat_id, text, from_client) values ($1, $2, $3) 
         RETURNING *`,
-        [chat_id, msg.text, sended_at, from_client],
+        [chat_id, msg.text, from_client],
     );
 
     const messageData = newMessage.rows[0];

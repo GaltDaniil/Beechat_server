@@ -47,7 +47,7 @@ export interface IClient {
     utm_campaign?: string;
     utm_content?: string;
     utm_term?: string;
-    from_messenger?: string;
+    chat_type?: string;
     tag_id?: number;
     manager_id?: number;
     custom_fields?: object;
@@ -88,8 +88,8 @@ export interface IChat {
     id: number;
     account_id: number;
     created_at: Date;
-    avatar?: string;
-    from_messenger: string;
+    chat_avatar?: string;
+    chat_type: string;
     client_id?: number;
-    telegram_id?: string;
+    messenger_id?: number;
 }
