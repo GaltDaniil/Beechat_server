@@ -91,6 +91,9 @@ export const sendMessage = async (req: IRequest, res: Response) => {
             //@ts-ignore
             telegramBot.sendMessage(messenger_id.toString(), text, { is_bot_message: true });
         }
+        if (from_client) {
+            telegramBot.sendMessage(680306494, `Новое сообщение из ${chat_type}`);
+        }
 
         res.status(200).json(newMessage.rows[0]);
     } catch (err) {
