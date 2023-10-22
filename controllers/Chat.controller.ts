@@ -189,27 +189,21 @@ export const deleteChat = async (req: Request, res: Response) => {
     }
 };
 export const hideChat = async (req: Request, res: Response) => {
-    const chat_id = req.params.id;
+    const { chat_id } = req.body;
 
     try {
         await client.query(
             `
-        DELETE FROM messages
-        WHERE chat_id=$1`,
-            [chat_id],
+        UPDATE chats
+        SET is_hidden=$1
+        WHERE id = $2
+        `,
+            [true, chat_id],
         );
-
-        const result = await client.query(
-            `
-        DELETE FROM chats
-        WHERE id=$1
-        RETURNING *`,
-            [chat_id],
-        );
-        res.status(200).json(result.rows);
+        res.status(200);
     } catch (error) {
         await client.query('ROLLBACK');
         console.error(error);
-        res.status(502).send('ошибка при удалении чата');
+        res.status(502).send('ошибка при скрытии чата');
     }
 };

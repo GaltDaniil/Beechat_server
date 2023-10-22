@@ -92,4 +92,6 @@ export interface IChat {
     chat_type: string;
     client_id?: number;
     messenger_id?: number;
+    is_hidden: boolean;
+    from_url: string;
 }

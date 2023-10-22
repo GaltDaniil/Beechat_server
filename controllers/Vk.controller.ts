@@ -1,7 +1,7 @@
 import { vk } from '../vkBot/vk.js';
 import { ContextDefaultState, MessageContext } from 'vk-io';
 
-import { paramParser } from '../middleware/paramParser.js';
+import { paramParser } from '../middleware/tgParamParser.js';
 import { telegramBot } from '../server.js';
 import client from '../db.js';
 import moment from 'moment';

@@ -4,6 +4,7 @@ import {
     deleteChat,
     getAllChatsWithUnread,
     getChat,
+    hideChat,
 } from '../controllers/Chat.controller.js';
 
 const router = Router();
@@ -14,5 +15,6 @@ router.get('/all', getAllChatsWithUnread);
 router.get('/:id', getChat);
 router.put('/:id', () => {});
 router.delete('/:id', deleteChat);
+router.patch('/', hideChat);
 
 export default router;
