@@ -1,5 +1,5 @@
 import TelegramBot from 'node-telegram-bot-api';
-import { paramParser } from '../middleware/paramParser.js';
+import { paramParser } from '../middleware/tgParamParser.js';
 import { telegramBot } from '../server.js';
 import client from '../db.js';
 import moment from 'moment';
@@ -17,9 +17,13 @@ export const startCommandWithParams: StartCommandType = async (msg, match) => {
         const tg_name = msg.chat.first_name;
         const tg_user_name = msg.chat.username;
 
-        const parsedParams = (await paramParser(match!)) as { chatId?: string; accountId?: string };
-        const account_id = Number(parsedParams.accountId);
-        console.log('спарсил параметры и получил account_id', account_id);
+        const parsedParams = (await paramParser(match!)) as {
+            chat_id?: string;
+            account_id?: string;
+            from_url?: string;
+        };
+        const account_id = Number(parsedParams.account_id);
+        const from_url = parsedParams.from_url;
 
         const query = `SELECT id
             FROM clients
@@ -43,9 +47,16 @@ export const startCommandWithParams: StartCommandType = async (msg, match) => {
                 const avatarUrl = await saveUserAvatar(msg.chat.id);
                 const client_id = isClient.id;
                 const query = `INSERT INTO chats 
-            (messenger_id, chat_type, account_id, client_id, chat_avatar) 
-            VALUES ($1, $2, $3, $4, $5);`;
-                const params = [telegram_id, 'telegram', account_id, client_id, avatarUrl];
+            (messenger_id, chat_type, from_url, account_id, client_id, chat_avatar) 
+            VALUES ($1, $2, $3, $4, $5, $6);`;
+                const params = [
+                    telegram_id,
+                    'telegram',
+                    from_url,
+                    account_id,
+                    client_id,
+                    avatarUrl,
+                ];
                 await client.query(query, params);
             }
         } else {
@@ -66,9 +77,16 @@ export const startCommandWithParams: StartCommandType = async (msg, match) => {
                 const avatarUrl = await saveUserAvatar(msg.chat.id);
                 const client_id = user.rows[0].id;
                 const query = `INSERT INTO chats 
-            (messenger_id, chat_type, account_id, client_id, chat_avatar) 
+            (messenger_id, chat_type, from_url, account_id, client_id, chat_avatar) 
             VALUES ($1, $2, $3, $4, $5);`;
-                const params = [telegram_id, 'telegram', account_id, client_id, avatarUrl];
+                const params = [
+                    telegram_id,
+                    'telegram',
+                    from_url,
+                    account_id,
+                    client_id,
+                    avatarUrl,
+                ];
 
                 await client.query(query, params);
                 console.log('чат создан');
@@ -100,7 +118,6 @@ export const startCommand: StartCommandType = async (msg, match) => {
 
         if (!user.rows[0]) {
             const name = msg.chat.first_name;
-            const created_at = moment().format('YYYY-MM-DD HH:mm:ss');
             const tg_user_name = msg.chat.username;
 
             const query = `INSERT INTO clients 
