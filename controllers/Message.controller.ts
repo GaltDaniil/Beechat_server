@@ -73,16 +73,25 @@ export const sendMessage = async (req: IRequest, res: Response) => {
         const { text, chat_id, from_client, chat_type, messenger_id } = req.body;
         console.log(chat_id);
 
-        const queryText = `INSERT INTO 
-        messages (text, chat_id, from_client) 
-        VALUES ($1, $2, $3) 
-        RETURNING *`;
-        const values = [text, chat_id, from_client];
-        const newMessage = await client.query(queryText, values);
+        const newMessage = await client.query(
+            `
+            WITH inserted_message AS (
+                INSERT INTO messages (text, chat_id, from_client) 
+                VALUES ($1, $2, $3) 
+                RETURNING *
+            )
+            UPDATE chats
+            SET is_hidden = false
+            WHERE id = $2 AND is_hidden != false
+            RETURNING inserted_message.*
+        `,
+            [text, chat_id, from_client],
+        );
         if (chat_type === 'telegram') {
             //@ts-ignore
             telegramBot.sendMessage(messenger_id.toString(), text, { is_bot_message: true });
         }
+
         res.status(200).json(newMessage.rows[0]);
     } catch (err) {
         await client.query('ROLLBACK');
