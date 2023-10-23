@@ -192,15 +192,16 @@ export const hideChat = async (req: Request, res: Response) => {
     const { chat_id } = req.body;
 
     try {
-        await client.query(
+        const result = await client.query(
             `
         UPDATE chats
         SET is_hidden=$1
         WHERE id = $2
+        RETURNING *
         `,
             [true, chat_id],
         );
-        res.status(200);
+        res.status(200).json(result.rows[0]);
     } catch (error) {
         await client.query('ROLLBACK');
         console.error(error);
