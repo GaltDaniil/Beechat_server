@@ -5,22 +5,22 @@ interface Parser {
 export const paramParser: Parser = (match) => {
     try {
         const startParams = match[1].trim();
-        let chat_id, account_id, from_url;
+        let chatId, accountId, fromUrl;
 
         const parsedParams: { chat_id?: string; account_id?: string; from_url?: string } = {};
 
         console.log('startParams is ', startParams);
-        if (startParams.match(/chat_id/)) {
-            chat_id = startParams.match(/chat_id=([^-]+)/);
-            if (chat_id) parsedParams.chat_id = chat_id[1];
+        if (startParams.match(/chatId/)) {
+            chatId = startParams.match(/chatId=([^-]+)/);
+            if (chatId) parsedParams.chat_id = chatId[1];
         }
         if (startParams.match(/account_id/)) {
-            account_id = startParams.match(/account_id=([^-]+)/);
-            if (account_id) parsedParams.account_id = account_id[1];
+            accountId = startParams.match(/accountId=([^-]+)/);
+            if (accountId) parsedParams.account_id = accountId[1];
         }
         if (startParams.match(/from_url/)) {
-            from_url = startParams.match(/from_url=([^-]+)/);
-            if (from_url) parsedParams.from_url = from_url[1];
+            fromUrl = startParams.match(/from_url=([^-]+)/);
+            if (fromUrl) parsedParams.from_url = fromUrl[1];
         }
         return parsedParams;
     } catch (error) {

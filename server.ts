@@ -5,6 +5,7 @@ import router from './routes/routes.js';
 
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
+import { VK } from 'vk-io';
 //import events from 'events';
 
 import cors from 'cors';
@@ -16,6 +17,7 @@ import {
 } from './controllers/Tg.controller.js';
 import client from './db.js';
 import { saveUserAvatar } from './middleware/AvatarLoader.js';
+import { checkAndCreateChat, sendVkMessage } from './controllers/Vk.controller.js';
 
 dotenv.config();
 const { TELEGRAM_TOKEN, PORT } = process.env;
@@ -27,7 +29,7 @@ export const telegramBot = new TelegramBot(TELEGRAM_TOKEN as string, {
 
 const app = express();
 const httpServer = createServer(app);
-const io = new Server(httpServer, {
+export const io = new Server(httpServer, {
     cors: {
         origin: [
             'http://localhost:3000',
@@ -90,6 +92,8 @@ io.on('connection', (socket: Socket) => {
     });
 });
 
+// TELEGRAM BOT
+
 telegramBot.onText(/\/start(.+)/, startCommandWithParams);
 telegramBot.onText(/\/start$/, startCommand);
 
@@ -135,9 +139,35 @@ telegramBot.on('message', async (msg) => {
     );
 
     const messageData = newMessage.rows[0];
-    io.emit('sendTgMessage', messageData);
+    io.emit('sendMessengerMessage', messageData);
     io.emit('update');
 });
+
+// VK BOT
+
+export const vk = new VK({
+    token: 'vk1.a.fbt7Dn66x0SWzoW84yNXfqpgctXUo-X8cAaN_Tzwt9_g-3B9kHdL_PhsTEDAe07J24KsHlYSpnWMJ_nXo9HkryITmWyHC_OMjQV9AYzKN6yMM2rKwC7PQJw8wSe1TfGqn2pZnq_1rDYKD5vK9ImJSixQKEmyojcYG6YMAZSOi0CWFLuuOpJQ0-Fy-yxq-BV40cCMmGUx-NeOcKnyLZVi4Q',
+});
+
+vk.updates.on('group_join', (context) => {
+    console.log('group_join', context);
+});
+
+vk.updates.on('message_new', async (context) => {
+    const result = await checkAndCreateChat(context);
+    if (result) {
+        await sendVkMessage(context, result);
+    }
+});
+
+vk.updates.on('message', async (context) => {
+    if (context.isGroup == true) return;
+    console.log('получил сообщение из ВК', context);
+});
+
+vk.updates.start().catch(console.error);
+
+// СТАРТ СЕРВЕРА
 
 httpServer.listen(PORT, () => {
     console.log(`server for chat is ok on PORT ${PORT}`);

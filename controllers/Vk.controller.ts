@@ -1,25 +1,31 @@
-import { vk } from '../vkBot/vk.js';
+import { vk } from '../server.js';
 import { ContextDefaultState, MessageContext } from 'vk-io';
-
-import { paramParser } from '../middleware/tgParamParser.js';
-import { telegramBot } from '../server.js';
 import client from '../db.js';
-import moment from 'moment';
-import { saveUserAvatar } from '../middleware/AvatarLoader.js';
-import { IChat, IClient } from '../types/index.js';
+import { vkParamParser } from '../middleware/vkParamParser.js';
+import { io } from '../server.js';
 
-export const checkAndCreateChat = async (context: MessageContext<ContextDefaultState>) => {
-    console.log('получил новое сообщение', context);
+export const checkAndCreateChat = async (
+    context: MessageContext<ContextDefaultState>,
+): Promise<number | null> => {
+    console.log(context);
+    let account_id, from_url;
+    if (context.referralValue) {
+        const parsedParams = (await vkParamParser(context.referralValue)) as {
+            account_id?: string;
+            from_url?: string;
+        };
+        account_id = parsedParams.account_id;
+        from_url = parsedParams.from_url || '';
+        console.log(account_id, from_url);
+    }
 
     //Пока временно устанавливаем id LinnikFitness
-    const account_id = 1;
 
-    const userData = await vk.api.users.get({
+    const vkData = await vk.api.users.get({
         user_ids: [context.senderId],
-        fields: ['photo_200_orig', 'city'],
+        fields: ['photo_200_orig'],
     });
-    const { id, photo_200_orig, first_name, last_name } = userData[0];
-    console.log(userData[0]);
+    const { id, photo_200_orig, first_name, last_name } = vkData[0];
 
     //Ищем в базе пользователя с таким ID
     const alreadyClient = await client.query(`
@@ -29,15 +35,15 @@ export const checkAndCreateChat = async (context: MessageContext<ContextDefaultS
     if (!alreadyClient.rows[0]) {
         //сборка запроса
         const query = `INSERT INTO clients 
-            (account_id, vk_id, custom_fields) 
-            VALUES ($1, $2, $3) 
+            (account_id, name, surname, vk_id, custom_fields) 
+            VALUES ($1, $2, $3, $4, $5) 
             RETURNING id;`;
         const custom_fields = {};
         //@ts-ignore
         if (first_name) custom_fields.first_name = first_name;
         //@ts-ignore
         if (last_name) custom_fields.last_name = last_name;
-        const params = [account_id, id, custom_fields];
+        const params = [account_id, first_name || '', last_name || '', id, custom_fields];
 
         //Создаем пользователя и берем его id
         const user = await client.query(query, params);
@@ -48,11 +54,13 @@ export const checkAndCreateChat = async (context: MessageContext<ContextDefaultS
             const avatarUrl = photo_200_orig || '';
             const client_id = user.rows[0].id;
             const query = `INSERT INTO chats 
-            (messenger_id, chat_type, account_id, client_id, chat_avatar) 
-            VALUES ($1, $2, $3, $4, $5);`;
-            const params = [id, 'telegram', account_id, client_id, avatarUrl];
-            await client.query(query, params);
+            (messenger_id, chat_type, account_id, client_id, chat_avatar, from_url) 
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *`;
+            const params = [id, 'vk', account_id, client_id, avatarUrl, from_url];
+            const result = await client.query(query, params);
             console.log('чат создан');
+            return result.rows[0].id;
         }
     } else {
         //проверяем есть ли ВК чат с этим пользователем
@@ -60,21 +68,44 @@ export const checkAndCreateChat = async (context: MessageContext<ContextDefaultS
         const isHaveChat = await client.query(
             `
                 SELECT * FROM chats
-                WHERE client_id=${client_id} AND vk_id=${id}
+                WHERE client_id=${client_id} AND messenger_id=${id}
             `,
         );
         //если да - сидим пыхтим
         if (isHaveChat.rows[0]) {
-            console.log('пользователь с чатом существует');
+            return isHaveChat.rows[0].id;
         }
         //если нет - создаем новый чат
         else {
-            const query = `INSERT INTO chats 
-            (vk_id, chat_type, account_id, client_id, avatar) 
-            VALUES ($1, $2, $3, $4, $5);`;
-            const params = [id, 'telegram', account_id, client_id, photo_200_orig];
-            await client.query(query, params);
+            const result = await client.query(
+                `
+            INSERT INTO chats 
+            (messenger_id, chat_type, account_id, client_id, chat_avatar, from_url) 
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING id
+            `,
+                [id, 'vk', account_id, client_id, photo_200_orig, from_url],
+            );
+            return result.rows[0].id;
         }
     }
-    console.log('Получено новое сообщение в Сообщество');
+    return null;
+};
+
+export const sendVkMessage = async (
+    context: MessageContext<ContextDefaultState>,
+    chat_id: number,
+) => {
+    const { text } = context;
+    const newMessage = await client.query(
+        `
+        INSERT INTO messages 
+        (chat_id, text, from_client) values ($1, $2, $3) 
+        RETURNING *`,
+        [chat_id, text, true],
+    );
+
+    const messageData = newMessage.rows[0];
+    io.emit('sendMessengerMessage', messageData);
+    io.emit('update');
 };
