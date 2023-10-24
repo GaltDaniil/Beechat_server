@@ -126,7 +126,7 @@ export const createChat = async (req: Request, res: Response) => {
     try {
         const { account_id, messenger_id, chat_type, from_url } = req.body;
         const avatarUrl = `imgs/defaultAvatars/${Math.floor(Math.random() * 17) + 1}.png`;
-
+        console.log(from_url);
         const query = `INSERT INTO chats 
         (account_id, chat_type, messenger_id, chat_avatar, from_url) 
         values ($1, $2, $3, $4, $5) 

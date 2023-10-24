@@ -77,13 +77,17 @@ export const sendMessage = async (req: IRequest, res: Response) => {
             `
             WITH inserted_message AS (
                 INSERT INTO messages (text, chat_id, from_client) 
-                VALUES ($1, $2, $3) 
+                VALUES ($1, $2, $3)
                 RETURNING *
             )
-            UPDATE chats
-            SET is_hidden = false
-            WHERE id = $2 AND is_hidden != false
-            RETURNING inserted_message.*
+            , updated_chats AS (
+                UPDATE chats
+                SET is_hidden = false
+                WHERE id = $2 AND is_hidden != false
+                RETURNING *
+            )
+            SELECT inserted_message.*
+            FROM inserted_message
         `,
             [text, chat_id, from_client],
         );
