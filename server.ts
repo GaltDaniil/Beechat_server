@@ -20,9 +20,8 @@ import { saveUserAvatar } from './middleware/AvatarLoader.js';
 import { checkAndCreateChat, sendVkMessage } from './controllers/Vk.controller.js';
 
 dotenv.config();
-const { TELEGRAM_TOKEN, PORT } = process.env;
+const { TELEGRAM_TOKEN, PORT, VK_TOKEN } = process.env;
 
-//export const emitter = new events.EventEmitter();
 export const telegramBot = new TelegramBot(TELEGRAM_TOKEN as string, {
     polling: true,
 });
@@ -81,7 +80,7 @@ io.on('connection', (socket: Socket) => {
     });
 
     socket.on('disconnect', () => {
-        console.log(`User disconnected: ${socket.id}`);
+        //console.log(`User disconnected: ${socket.id}`);
         for (const chatId in chatStatus) {
             if (chatStatus[chatId][socket.id]) {
                 delete chatStatus[chatId][socket.id];
@@ -146,7 +145,7 @@ telegramBot.on('message', async (msg) => {
 // VK BOT
 
 export const vk = new VK({
-    token: 'vk1.a.fbt7Dn66x0SWzoW84yNXfqpgctXUo-X8cAaN_Tzwt9_g-3B9kHdL_PhsTEDAe07J24KsHlYSpnWMJ_nXo9HkryITmWyHC_OMjQV9AYzKN6yMM2rKwC7PQJw8wSe1TfGqn2pZnq_1rDYKD5vK9ImJSixQKEmyojcYG6YMAZSOi0CWFLuuOpJQ0-Fy-yxq-BV40cCMmGUx-NeOcKnyLZVi4Q',
+    token: VK_TOKEN!,
 });
 
 vk.updates.on('group_join', (context) => {
@@ -156,13 +155,18 @@ vk.updates.on('group_join', (context) => {
 vk.updates.on('message_new', async (context) => {
     const result = await checkAndCreateChat(context);
     if (result) {
-        await sendVkMessage(context, result);
+        const result2 = await sendVkMessage(context, result);
+        console.log(result2);
     }
 });
 
 vk.updates.on('message', async (context) => {
     if (context.isGroup == true) return;
-    console.log('получил сообщение из ВК', context);
+    console.log('ответ сообщества ВК', context);
+    const result = await checkAndCreateChat(context);
+    if (result) {
+        await sendVkMessage(context, result);
+    }
 });
 
 vk.updates.start().catch(console.error);

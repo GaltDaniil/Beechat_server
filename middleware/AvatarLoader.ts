@@ -27,3 +27,20 @@ export const saveUserAvatar = async (userId: number) => {
         console.error('Ошибка при сохранении аватара:', error);
     }
 };
+export const avatarUrlSaver = async (url: string, userId: number) => {
+    try {
+        if (url) {
+            const response = await axios.get(url!, { responseType: 'arraybuffer' });
+            const imageBuffer = Buffer.from(response.data, 'binary');
+            const filename = `avatar_${userId}.jpg`;
+            const filePath = `./imgs/userAvatars/${filename}`;
+
+            fs.writeFileSync(filePath, imageBuffer);
+
+            console.log(`Аватар пользователя ${userId} сохранен на сервере в ${filePath}`);
+            return filePath.slice(2);
+        }
+    } catch (error) {
+        console.error('Ошибка при сохранении аватара в БД:', error);
+    }
+};

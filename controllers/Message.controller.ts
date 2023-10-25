@@ -1,6 +1,6 @@
 import client from '../db.js';
 import { Request, Response } from 'express';
-import io, { Socket } from 'socket.io';
+import { vk } from '../server.js';
 import { telegramBot } from '../server.js';
 
 interface IRequest extends Request {
@@ -91,10 +91,14 @@ export const sendMessage = async (req: IRequest, res: Response) => {
         `,
             [text, chat_id, from_client],
         );
-        if (chat_type === 'telegram') {
+        if (chat_type === 'telegram' && !from_client) {
             //@ts-ignore
             telegramBot.sendMessage(messenger_id.toString(), text, { is_bot_message: true });
+        } else if (chat_type === 'vk' && !from_client) {
+            const randomId = Math.floor(Math.random() * 1000000);
+            vk.api.messages.send({ user_id: messenger_id, message: text, random_id: randomId });
         }
+
         if (from_client) {
             telegramBot.sendMessage(680306494, `Новое сообщение из ${chat_type}`);
         }

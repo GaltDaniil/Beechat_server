@@ -14,17 +14,17 @@ export const vkParamParser = (str: string): IParams => {
 
         if (str.match(/chatId/)) {
             chatId = str.match(/chatId=([^_]+)/);
-            console.log('chatId', chatId);
+
             if (chatId) parsedParams.chat_id = chatId[1];
         }
         if (str.match(/accountId/)) {
             accountId = str.match(/accountId=([^_]+)/);
-            console.log('accountId', accountId);
+
             if (accountId) parsedParams.account_id = accountId[1];
         }
         if (str.match(/fromUrl/)) {
             fromUrl = str.match(/fromUrl=([^_]+)/);
-            console.log('fromUrl', fromUrl);
+
             if (fromUrl) parsedParams.from_url = fromUrl[1];
         }
         return parsedParams;

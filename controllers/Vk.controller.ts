@@ -3,6 +3,7 @@ import { ContextDefaultState, MessageContext } from 'vk-io';
 import client from '../db.js';
 import { vkParamParser } from '../middleware/vkParamParser.js';
 import { io } from '../server.js';
+import { avatarUrlSaver } from '../middleware/AvatarLoader.js';
 
 export const checkAndCreateChat = async (
     context: MessageContext<ContextDefaultState>,
@@ -51,7 +52,8 @@ export const checkAndCreateChat = async (
 
         //создаем чат
         if (user.rows[0]) {
-            const avatarUrl = photo_200_orig || '';
+            const avatarUrl = await avatarUrlSaver(photo_200_orig, id);
+            console.log('avatarUrl', avatarUrl);
             const client_id = user.rows[0].id;
             const query = `INSERT INTO chats 
             (messenger_id, chat_type, account_id, client_id, chat_avatar, from_url) 
@@ -96,13 +98,14 @@ export const sendVkMessage = async (
     context: MessageContext<ContextDefaultState>,
     chat_id: number,
 ) => {
-    const { text } = context;
+    const { text, isOutbox } = context;
+    const from_client = !isOutbox;
     const newMessage = await client.query(
         `
         INSERT INTO messages 
         (chat_id, text, from_client) values ($1, $2, $3) 
         RETURNING *`,
-        [chat_id, text, true],
+        [chat_id, text, from_client],
     );
 
     const messageData = newMessage.rows[0];
