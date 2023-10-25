@@ -11,15 +11,15 @@ export const paramParser: Parser = (match) => {
 
         console.log('startParams is ', startParams);
         if (startParams.match(/chatId/)) {
-            chatId = startParams.match(/chatId=([^-]+)/);
+            chatId = startParams.match(/chatId=([^_]+)/);
             if (chatId) parsedParams.chat_id = chatId[1];
         }
-        if (startParams.match(/account_id/)) {
-            accountId = startParams.match(/accountId=([^-]+)/);
+        if (startParams.match(/accountId/)) {
+            accountId = startParams.match(/accountId=([^_]+)/);
             if (accountId) parsedParams.account_id = accountId[1];
         }
-        if (startParams.match(/from_url/)) {
-            fromUrl = startParams.match(/from_url=([^-]+)/);
+        if (startParams.match(/fromUrl/)) {
+            fromUrl = startParams.match(/fromUrl=([^_]+)/);
             if (fromUrl) parsedParams.from_url = fromUrl[1];
         }
         return parsedParams;

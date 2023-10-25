@@ -75,8 +75,8 @@ io.on('connection', (socket: Socket) => {
     });
 
     socket.on('sendMessage', (data) => {
-        io.emit('update');
         socket.to(data.chat_id).emit('newMessage', data);
+        io.emit('update');
     });
 
     socket.on('disconnect', () => {
