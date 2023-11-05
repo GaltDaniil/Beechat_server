@@ -7,6 +7,9 @@ import {
 } from '../../controllers/Messenger.controller.js';
 import { avatarUrlSaver } from '../../middleware/AvatarLoader.js';
 import { urlParser } from '../../middleware/urlParser.js';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const { TELEGRAM_TOKEN } = process.env;
 

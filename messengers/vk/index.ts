@@ -6,6 +6,9 @@ import {
 } from '../../controllers/Messenger.controller.js';
 import { urlParser } from '../../middleware/urlParser.js';
 import { avatarUrlSaver } from '../../middleware/AvatarLoader.js';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const { VK_TOKEN } = process.env;
 
@@ -19,6 +22,7 @@ export const startVkBot = () => {
     });
 
     vk.updates.on('message_new', async (context) => {
+        if (context.text === 'начать' || context.text === 'Начать') return;
         let account_id;
         let contact_id;
         let from_url;

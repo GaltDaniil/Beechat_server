@@ -1,7 +1,6 @@
 import client from '../db.js';
 import { Request, Response } from 'express';
-import io, { Socket } from 'socket.io';
-import { telegramBot } from '../server.js';
+import { tgBot } from '../messengers/tg/index.js';
 
 interface IMessage {
     userId: number;
@@ -45,6 +44,7 @@ export const getAllContactsWithUnread = async (req: Request, res: Response) => {
         contacts.*,
         m.text AS last_message,
         m.created_at last_message_created_at,
+        m.from_contact last_message_from_contact,
         (
             SELECT COUNT(*)
             FROM messages
@@ -55,7 +55,8 @@ export const getAllContactsWithUnread = async (req: Request, res: Response) => {
     LEFT JOIN LATERAL (
         SELECT
             m.text,
-            m.created_at
+            m.created_at,
+            m.from_contact
         FROM
             messages m
         WHERE
@@ -88,7 +89,7 @@ export const createContact = async (req: Request, res: Response) => {
         const params = [account_id, messenger_type, messenger_id, avatarUrl, from_url, false];
 
         const result = await client.query(query, params);
-        telegramBot.sendMessage(680306494, `Новый контакт из ${messenger_type}`);
+        tgBot.sendMessage(680306494, `Новый контакт из ${messenger_type}`);
 
         res.status(200).json(result.rows[0]);
     } catch (err) {
@@ -148,15 +149,13 @@ export const hideContact = async (req: Request, res: Response) => {
 export const updateContact = async (req: Request, res: Response) => {
     try {
         const { contact_id, contact_name, contact_phone, description } = req.body;
-
-        const custom_fields = { description: description };
         //@ts-ignore
         await client.query(
             `UPDATE contacts 
-            SET contact_name=$1, contact_phone=$2, custom_fields=$3
-            WHERE contact_id=$4
-            RETURNING id`,
-            [contact_name, contact_phone, custom_fields, contact_id],
+            SET contact_name=$1, contact_phone=$2, description=$3
+            WHERE id=$4
+            `,
+            [contact_name, contact_phone, description, contact_id],
         );
         res.status(200).send('клиент создан');
     } catch (err) {

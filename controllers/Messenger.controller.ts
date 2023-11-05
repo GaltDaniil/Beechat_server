@@ -3,18 +3,32 @@ import { io } from '../server.js';
 import { IContact } from '../types/index.js';
 
 export const checkContact = async (messenger_id: number, messenger_type: string) => {
-    const alreadyContact = await client.query(`
-        SELECT id FROM contact
-        WHERE messenger_id=${messenger_id} AND messenger_type=${messenger_type}
-        RETURNING *
-    `);
+    const alreadyContact = await client.query(
+        `
+        SELECT * FROM contacts
+        WHERE messenger_id=$1 AND messenger_type=$2
+    `,
+        [messenger_id, messenger_type],
+    );
+
+    return alreadyContact.rows[0] as IContact | undefined;
+};
+
+export const checkMessage = async (contact_id: number, text: string) => {
+    const alreadyContact = await client.query(
+        `
+        SELECT * FROM messages
+        WHERE contact_id=$1 AND text=$2
+    `,
+        [contact_id, text],
+    );
 
     return alreadyContact.rows[0] as IContact | undefined;
 };
 
 export const createContact = async (params: IContact) => {
     const contact = await client.query(
-        `INSERT INTO contact 
+        `INSERT INTO contacts 
         (account_id, contact_name, contact_avatar, messenger_id, 
         messenger_type, instagram_chat_id, from_url, contact_username, is_hidden) 
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 

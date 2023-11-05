@@ -1,8 +1,9 @@
 import client from '../db.js';
 import { Request, Response } from 'express';
 import { vk } from '../messengers/vk/index.js';
-import { telegramBot } from '../server.js';
 import { ig } from '../messengers/ig/index.js';
+import { tgBot } from '../messengers/tg/index.js';
+//@ts-ignore
 
 interface IRequest extends Request {
     body: {
@@ -91,17 +92,17 @@ export const sendMessage = async (req: IRequest, res: Response) => {
         );
         if (messenger_type === 'telegram' && !from_contact) {
             //@ts-ignore
-            telegramBot.sendMessage(messenger_id.toString(), text, { is_bot_message: true });
+            tgBot.sendMessage(messenger_id.toString(), text, { is_bot_message: true });
         } else if (messenger_type === 'vk' && !from_contact) {
             const randomId = Math.floor(Math.random() * 1000000);
             vk.api.messages.send({ user_id: messenger_id, message: text, random_id: randomId });
         } else if (messenger_type === 'instagram' && !from_contact) {
-            await ig.fetchContact(instagram_chat_id).then((contact: any) => {
+            await ig.fetchChat(instagram_chat_id).then((contact: any) => {
                 contact.sendMessage(text);
             });
         }
         if (from_contact) {
-            telegramBot.sendMessage(680306494, `Новое сообщение из ${messenger_type}`);
+            tgBot.sendMessage(680306494, `Новое сообщение из ${messenger_type}`);
         }
 
         res.status(200).json(newMessage.rows[0]);

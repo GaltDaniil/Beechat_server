@@ -12,11 +12,7 @@ import { startTelegramBot } from './messengers/tg/index.js';
 import { startVkBot } from './messengers/vk/index.js';
 
 dotenv.config();
-const { TELEGRAM_TOKEN, PORT, VK_TOKEN, IG_USERNAME, IG_PASSWORD } = process.env;
-
-export const telegramBot = new TelegramBot(TELEGRAM_TOKEN as string, {
-    polling: true,
-});
+const { PORT } = process.env;
 
 const app = express();
 const httpServer = createServer(app);

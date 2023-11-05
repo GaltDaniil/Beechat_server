@@ -4,22 +4,43 @@ import * as Insta from '@androz2091/insta.js';
 import type { Message, Client } from '@androz2091/insta.js';
 import {
     checkContact,
+    checkMessage,
     createContact,
     sendMessage,
 } from '../../controllers/Messenger.controller.js';
 import { avatarUrlSaver } from '../../middleware/AvatarLoader.js';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const { IG_USERNAME, IG_PASSWORD } = process.env;
 export const ig: Client = new Insta.Client();
 
 const messageHandler = async (message: Message) => {
     if (message.type === 'reel_share') return;
-    if (message.text.length <= 1) return;
+    if (message.content.length < 2) return;
+    if (message.author.id === ig.user.id) {
+        ig.fetchChat(message.chatID).then(async (contact: any) => {
+            const messenger_id = contact.users.firstKey();
+            console.log('messenger_id is ', messenger_id);
+            const isContact = await checkContact(messenger_id, 'instagram');
+            if (isContact) {
+                console.log('isContact is ', isContact);
+                console.log('text is ', message.content);
+                const isMessage = await checkMessage(isContact.id!, message.content);
+                console.log(isMessage);
+                if (!isMessage) {
+                    if (message.content) await sendMessage(isContact.id!, message.content, false);
+                }
+            }
+        });
+        return;
+    }
 
     const messenger_id = message.author.id;
     const messenger_type = 'instagram';
+    const text: string = message.content;
     const result = await checkContact(messenger_id, messenger_type);
-    const text: string = message.text;
 
     let contact_id: number;
 
@@ -45,9 +66,6 @@ const messageHandler = async (message: Message) => {
     }
 
     let from_contact = true;
-    if (message.author.id === ig.user.id) {
-        from_contact = false;
-    }
     await sendMessage(contact_id, text, from_contact);
 };
 

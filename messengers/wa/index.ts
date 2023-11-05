@@ -1,6 +1,5 @@
 import qrcode from 'qrcode-terminal';
 import { Client } from 'whatsapp-web.js';
-import client from '../../db.js';
 
 export const waBot = new Client({});
 
