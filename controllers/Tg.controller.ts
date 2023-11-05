@@ -4,7 +4,7 @@ import { telegramBot } from '../server.js';
 import client from '../db.js';
 import moment from 'moment';
 import { saveUserAvatar } from '../middleware/AvatarLoader.js';
-import { IChat, IClient } from '../types/index.js';
+import { IContact } from '../types/index.js';
 
 interface StartCommandType {
     (msg: TelegramBot.Message, match?: RegExpExecArray | null): void;
@@ -18,7 +18,7 @@ export const startCommandWithParams: StartCommandType = async (msg, match) => {
         const tg_user_name = msg.chat.username;
 
         const parsedParams = (await paramParser(match!)) as {
-            chat_id?: string;
+            contact_id?: string;
             account_id?: string;
             from_url?: string;
         };
@@ -33,21 +33,21 @@ export const startCommandWithParams: StartCommandType = async (msg, match) => {
 
         if (isUser.rows[0]) {
             const isClient = isUser.rows[0];
-            const isHaveChat = await client.query(
+            const isHaveContact = await client.query(
                 `
-                SELECT * FROM chats
+                SELECT * FROM contacts
                 WHERE client_id = $1
             `,
                 [isClient.id],
             );
-            if (isHaveChat.rows[0]) {
+            if (isHaveContact.rows[0]) {
                 console.log('пользователь с чатом существует');
             } else {
                 console.log('пользователя нет, создаем чат');
                 const avatarUrl = await saveUserAvatar(msg.chat.id);
                 const client_id = isClient.id;
-                const query = `INSERT INTO chats 
-            (messenger_id, chat_type, from_url, account_id, client_id, chat_avatar) 
+                const query = `INSERT INTO contacts 
+            (messenger_id, messenger_type, from_url, account_id, client_id, contact_avatar) 
             VALUES ($1, $2, $3, $4, $5, $6);`;
                 const params = [
                     telegram_id,
@@ -76,9 +76,9 @@ export const startCommandWithParams: StartCommandType = async (msg, match) => {
             if (user.rows[0]) {
                 const avatarUrl = await saveUserAvatar(msg.chat.id);
                 const client_id = user.rows[0].id;
-                const query = `INSERT INTO chats 
-            (messenger_id, chat_type, from_url, account_id, client_id, chat_avatar) 
-            VALUES ($1, $2, $3, $4, $5);`;
+                const query = `INSERT INTO contacts 
+            (messenger_id, messenger_type, from_url, account_id, client_id, contact_avatar) 
+            VALUES ($1, $2, $3, $4, $5, $6);`;
                 const params = [
                     telegram_id,
                     'telegram',
@@ -135,8 +135,8 @@ export const startCommand: StartCommandType = async (msg, match) => {
             if (data.rows[0]) {
                 const avatarUrl = await saveUserAvatar(msg.chat.id);
                 const client_id = data.rows[0].id;
-                const query = `INSERT INTO chats 
-            (messenger_id, chat_type, account_id, client_id, chat_avatar) 
+                const query = `INSERT INTO contacts 
+            (messenger_id, messenger_type, account_id, client_id, contact_avatar) 
             VALUES ($1, $2, $3, $4, $5);`;
                 const params = [telegram_id, 'telegram', 1, client_id, avatarUrl];
 
@@ -155,26 +155,26 @@ export const startCommand: StartCommandType = async (msg, match) => {
     }
 };
 
-export const createChatFromTg = async (
+export const createContactFromTg = async (
     msg: TelegramBot.Message,
     client_id: number,
-): Promise<IChat> => {
+): Promise<IContact> => {
     const telegram_id = msg.chat.id;
     const avatarUrl = await saveUserAvatar(msg.chat.id);
 
-    const query = `INSERT INTO chats 
-            (messenger_id, chat_type, account_id, client_id, chat_avatar) 
+    const query = `INSERT INTO contacts 
+            (messenger_id, messenger_type, account_id, client_id, contact_avatar) 
             VALUES ($1, $2, $3, $4, $5)
             RETURNING *`;
     const params = [telegram_id, 'telegram', 1, client_id, avatarUrl];
 
-    const newChat = await client.query(query, params);
+    const newContact = await client.query(query, params);
     telegramBot.sendMessage(680306494, `Новое сообщение с сайта в телеграм`);
 
-    return newChat.rows[0];
+    return newContact.rows[0];
 };
 
-export const checkClientForAvailability = async (msg: TelegramBot.Message): Promise<IClient> => {
+export const checkContactForAvailability = async (msg: TelegramBot.Message): Promise<IContact> => {
     const telegram_id = msg.chat.id;
 
     const user = await client.query(
@@ -186,14 +186,14 @@ export const checkClientForAvailability = async (msg: TelegramBot.Message): Prom
     return user.rows[0];
 };
 
-export const checkChatForAvailability = async (msg: TelegramBot.Message): Promise<IChat> => {
+export const checkChatForAvailability = async (msg: TelegramBot.Message): Promise<IContact> => {
     const telegram_id = msg.chat.id;
 
-    const chat = await client.query(
+    const contact = await client.query(
         `
-    SELECT * FROM chats
+    SELECT * FROM contacts
     WHERE messenger_id = $1`,
         [telegram_id],
     );
-    return chat.rows[0];
+    return contact.rows[0];
 };

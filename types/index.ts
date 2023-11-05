@@ -25,39 +25,21 @@ export interface RequestBody extends Request {
     };
 }
 
-export interface IMessage {
-    id: number;
-    sended_at: Date;
-    text: string;
-    chat_id: number;
-    from_client: boolean;
-    is_readed: boolean;
-}
-
-export interface IClient {
-    id: number;
-    account_id: number;
-    name: string;
-    surname?: string;
-    email?: string;
-    phone?: string;
-    adress?: string;
-    avatar?: string;
-    utm_source?: string;
-    utm_campaign?: string;
-    utm_content?: string;
-    utm_term?: string;
-    chat_type?: string;
-    tag_id?: number;
-    manager_id?: number;
-    custom_fields?: object;
-    created_at: Date;
-}
 export interface IAccount {
     id: number;
     company_name: string;
     owner_id: number;
 }
+
+export interface IMessage {
+    id: number;
+    created_at: Date;
+    text: string;
+    contact_id: number;
+    from_contact: boolean;
+    is_readed: boolean;
+}
+
 export interface IPipeline {
     id: number;
     title: string;
@@ -84,14 +66,29 @@ export interface IDeal {
     client_avatar: string;
 }
 
-export interface IChat {
-    id: number;
+export interface IContact {
+    id?: number;
+    contact_name: string;
+    contact_avatar?: string;
+    contact_email?: string;
+    contact_phone?: string;
+    contact_username?: string;
+    messenger_id: number;
+    messenger_type: string;
+    created_at?: Date;
     account_id: number;
+    instagram_chat_id?: string;
+    is_hidden?: boolean;
+    from_url?: string;
+    custom_fields?: object;
+    manager_id?: number;
+}
+
+export interface IUtm {
+    utm_campaign: string;
+    utm_source: string;
+    utm_medium: string;
+    utm_contend: string;
+    utm_term: string;
     created_at: Date;
-    chat_avatar?: string;
-    chat_type: string;
-    client_id?: number;
-    messenger_id?: number;
-    is_hidden: boolean;
-    from_url: string;
 }

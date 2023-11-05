@@ -5,22 +5,14 @@ import router from './routes/routes.js';
 
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
-import { VK } from 'vk-io';
-//import events from 'events';
 
 import cors from 'cors';
-import {
-    checkChatForAvailability,
-    createChatFromTg,
-    startCommand,
-    startCommandWithParams,
-} from './controllers/Tg.controller.js';
-import client from './db.js';
-import { saveUserAvatar } from './middleware/AvatarLoader.js';
-import { checkAndCreateChat, sendVkMessage } from './controllers/Vk.controller.js';
+import { startInstagramBot } from './messengers/ig/index.js';
+import { startTelegramBot } from './messengers/tg/index.js';
+import { startVkBot } from './messengers/vk/index.js';
 
 dotenv.config();
-const { TELEGRAM_TOKEN, PORT, VK_TOKEN } = process.env;
+const { TELEGRAM_TOKEN, PORT, VK_TOKEN, IG_USERNAME, IG_PASSWORD } = process.env;
 
 export const telegramBot = new TelegramBot(TELEGRAM_TOKEN as string, {
     polling: true,
@@ -57,33 +49,33 @@ const chatStatus: IOnlineUsers = {};
 
 io.on('connection', (socket: Socket) => {
     socket.on('join', (data) => {
-        chatStatus[data.chat_id] = chatStatus[data.chat_id] || {};
-        chatStatus[data.chat_id][socket.id] = true;
+        chatStatus[data.contact_id] = chatStatus[data.contact_id] || {};
+        chatStatus[data.contact_id][socket.id] = true;
 
         io.emit('chatStatus', chatStatus);
 
         const roomsInfo = io.sockets.adapter.rooms;
 
         roomsInfo.forEach((participants, room) => {
-            if (room !== data.chat_id) {
+            if (room !== data.contact_id) {
                 socket.leave(room);
             }
         });
 
-        socket.join(data.chat_id);
+        socket.join(data.contact_id);
         console.log('Current rooms and participants:', roomsInfo);
     });
 
     socket.on('sendMessage', (data) => {
-        socket.to(data.chat_id).emit('newMessage', data);
+        socket.to(data.contact_id).emit('newMessage', data);
         io.emit('update');
     });
 
     socket.on('disconnect', () => {
         //console.log(`User disconnected: ${socket.id}`);
-        for (const chatId in chatStatus) {
-            if (chatStatus[chatId][socket.id]) {
-                delete chatStatus[chatId][socket.id];
+        for (const contactId in chatStatus) {
+            if (chatStatus[contactId][socket.id]) {
+                delete chatStatus[contactId][socket.id];
                 io.emit('chatStatus', chatStatus);
                 break;
             }
@@ -91,87 +83,9 @@ io.on('connection', (socket: Socket) => {
     });
 });
 
-// TELEGRAM BOT
-
-telegramBot.onText(/\/start(.+)/, startCommandWithParams);
-telegramBot.onText(/\/start$/, startCommand);
-
-telegramBot.on('message', async (msg) => {
-    const telegram_id = msg.chat.id;
-    const from_client = true;
-    let chat_id;
-
-    const isHaveChat = await checkChatForAvailability(msg);
-
-    if (!isHaveChat) {
-        const user = await client.query(
-            `
-        SELECT * FROM clients
-        WHERE telegram_id = $1`,
-            [telegram_id],
-        );
-        if (user.rows[0]) {
-            const client_id = user.rows[0].id;
-            const newChat = await createChatFromTg(msg, client_id);
-            chat_id = newChat.id;
-        } else {
-            const query = `INSERT INTO clients 
-            (name, telegram_id, custom_fields) 
-            VALUES ($1, $2, $3) 
-            RETURNING id;`;
-            const custom_fields = {
-                tg_user_name: msg.chat.username,
-            };
-            const params = [msg.chat.first_name, telegram_id, custom_fields];
-            const data = await client.query(query, params);
-            chat_id = data.rows[0].id;
-        }
-    } else {
-        chat_id = isHaveChat.id;
-    }
-    const newMessage = await client.query(
-        `
-        INSERT INTO messages 
-        (chat_id, text, from_client) values ($1, $2, $3) 
-        RETURNING *`,
-        [chat_id, msg.text, from_client],
-    );
-
-    const messageData = newMessage.rows[0];
-    io.emit('sendMessengerMessage', messageData);
-    io.emit('update');
-});
-
-// VK BOT
-
-export const vk = new VK({
-    token: VK_TOKEN!,
-});
-
-vk.updates.on('group_join', (context) => {
-    console.log('group_join', context);
-});
-
-vk.updates.on('message_new', async (context) => {
-    const result = await checkAndCreateChat(context);
-    if (result) {
-        const result2 = await sendVkMessage(context, result);
-        console.log(result2);
-    }
-});
-
-vk.updates.on('message', async (context) => {
-    if (context.isGroup == true) return;
-    console.log('ответ сообщества ВК', context);
-    const result = await checkAndCreateChat(context);
-    if (result) {
-        await sendVkMessage(context, result);
-    }
-});
-
-vk.updates.start().catch(console.error);
-
-// СТАРТ СЕРВЕРА
+startTelegramBot();
+startVkBot();
+startInstagramBot();
 
 httpServer.listen(PORT, () => {
     console.log(`server for chat is ok on PORT ${PORT}`);

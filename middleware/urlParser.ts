@@ -1,20 +1,18 @@
 interface IParams {
-    chat_id?: string;
+    contact_id?: string;
     account_id?: string;
     from_url?: string;
 }
 
-export const vkParamParser = (str: string): IParams => {
+export const urlParser = (str: string): IParams => {
     try {
-        let chatId, accountId, fromUrl;
+        let contactId, accountId, fromUrl;
 
         const parsedParams: IParams = {};
 
-        console.log('vkParams is ', str);
-
-        if (str.match(/chatId/)) {
-            chatId = str.match(/chatId=([^_]+)/);
-            if (chatId) parsedParams.chat_id = chatId[1];
+        if (str.match(/contactId/)) {
+            contactId = str.match(/contactId=([^_]+)/);
+            if (contactId) parsedParams.contact_id = contactId[1];
         }
         if (str.match(/accountId/)) {
             accountId = str.match(/accountId=([^_]+)/);

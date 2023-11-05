@@ -3,6 +3,9 @@
 /dir
 /.env
 vk.ts
+/next
+/.wwebjs_auth
+/.wwebjs_cache
 
 
 # misc

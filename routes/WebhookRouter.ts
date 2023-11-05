@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getcourseHook } from '../controllers/Webhooks.controller.js';
+import { getcourseHook } from '../next/Webhooks.controller.js';
 
 const router = Router();
 
